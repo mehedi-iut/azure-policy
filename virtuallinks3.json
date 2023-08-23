@@ -1,0 +1,91 @@
+{
+    "mode": "Indexed",
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Network/privateDnsZones"
+          },
+          {
+            "field": "tags['LinkToHub']",
+            "equals": "true"
+          }
+        ]
+      },
+      "then": {
+        "effect": "deployIfNotExists",
+        "details": {
+          "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+          "name": "hublink",
+          "evaluationDelay": "AfterProvisioning",
+          "roleDefinitionIds": [
+            "/subscriptions/{subscriptionId}/providers/Microsoft.Authorization/roleDefinitions//b24988ac-6180-42a0-ab88-20f7382dd24c",
+            "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c"
+          ],
+          "existenceCondition": {
+            "allOf": [
+              {
+                "field": "Microsoft.Network/privateDnsZones/virtualNetworkLinks/virtualNetwork.id",
+                "equals": "[parameters('hubVnetResourceId')]"
+              }
+            ]
+          },
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "parameters": {
+                  "privateDnsZoneName": {
+                    "type": "string"
+                  },
+                  "privateDnsZoneResourceGroup": {
+                    "type": "string"
+                  },
+                  "hubVnetResourceId": {
+                    "type": "string"
+                  }
+                },
+                "resources": [
+                  {
+                    "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+                    "apiVersion": "2020-06-01",
+                    "name": "[concat(parameters('privateDnsZoneName'), '/hubVnetLink')]",
+                    "location": "global",
+                    "properties": {
+                      "registrationEnabled": true,
+                      "virtualNetwork": {
+                        "id": "[parameters('hubVnetResourceId')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "parameters": {
+                "privateDnsZoneName": {
+                  "value": "[field('name')]"
+                },
+                "privateDnsZoneResourceGroup": {
+                  "value": "[resourceGroup().name]"
+                },
+                "hubVnetResourceId": {
+                  "value": "[parameters('hubVnetResourceId')]"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+  
+    "parameters": {
+      "hubVnetResourceId": {
+        "type": "String",
+        "metadata": {
+          "description": "Resource ID of the hub virtual network to link to private DNS zones"
+        }
+      }
+    }
+  }
